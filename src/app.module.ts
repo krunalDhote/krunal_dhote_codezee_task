@@ -4,6 +4,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 
 import { validateEnvironment } from './config/environment.validation';
 import { HealthController } from './common/health/health.controller';
+import { UrlsModule } from './urls/urls.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { HealthController } from './common/health/health.controller';
         uri: configService.getOrThrow<string>('MONGODB_URI'),
       }),
     }),
+    UrlsModule,
   ],
   controllers: [HealthController],
 })
