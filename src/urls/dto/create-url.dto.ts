@@ -5,6 +5,7 @@ import {
   registerDecorator,
   ValidationOptions,
 } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 function IsSafeHttpUrl(validationOptions?: ValidationOptions) {
   return (object: object, propertyName: string): void => {
@@ -58,10 +59,12 @@ function IsFutureDate(validationOptions?: ValidationOptions) {
 }
 
 export class CreateUrlDto {
+  @ApiProperty({ example: 'https://example.com/article' })
   @IsString()
   @IsSafeHttpUrl()
   originalUrl!: string;
 
+  @ApiPropertyOptional({ example: '2026-12-31T23:59:59.000Z', format: 'date-time' })
   @IsOptional()
   @IsISO8601()
   @IsFutureDate()
