@@ -13,6 +13,14 @@ export interface CreateUrlResponse {
   originalUrl: string;
 }
 
+export interface UrlStatsResponse {
+  shortCode: string;
+  originalUrl: string;
+  clickCount: number;
+  lastAccessedAt?: Date;
+  createdAt: Date;
+}
+
 const SHORT_CODE_LENGTH = 6;
 const MAX_CREATE_ATTEMPTS = 5;
 const ALPHANUMERIC_CHARACTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -55,9 +63,63 @@ export class UrlsService {
   }
 
   async getOriginalUrl(shortCode: string): Promise<string> {
+    const accessedAt = new Date();
+    const url = await this.urlModel
+      .findOneAndUpdate(
+        {
+          shortCode,
+          $or: [
+            { expiresAt: { $exists: false } },
+            { expiresAt: null },
+            { expiresAt: { $gt: accessedAt } },
+          ],
+        },
+        {
+          $inc: { clickCount: 1 },
+          $set: { lastAccessedAt: accessedAt },
+        },
+        { new: true },
+      )
+      .select({ originalUrl: 1, _id: 0 })
+      .lean()
+      .exec();
+
+    if (url !== null) {
+      return url.originalUrl;
+    }
+
+    const existingUrl = await this.urlModel
+      .findOne({ shortCode })
+      .select({ expiresAt: 1, _id: 0 })
+      .lean()
+      .exec();
+
+    if (existingUrl === null) {
+      throw new NotFoundException('Short URL not found.');
+    }
+
+    if (
+      existingUrl.expiresAt !== undefined &&
+      existingUrl.expiresAt !== null &&
+      existingUrl.expiresAt.getTime() <= accessedAt.getTime()
+    ) {
+      throw new GoneException('Short URL has expired.');
+    }
+
+    throw new NotFoundException('Short URL not found.');
+  }
+
+  async getStats(shortCode: string): Promise<UrlStatsResponse> {
     const url = await this.urlModel
       .findOne({ shortCode })
-      .select({ originalUrl: 1, expiresAt: 1, _id: 0 })
+      .select({
+        shortCode: 1,
+        originalUrl: 1,
+        clickCount: 1,
+        lastAccessedAt: 1,
+        createdAt: 1,
+        _id: 0,
+      })
       .lean()
       .exec();
 
@@ -65,11 +127,10 @@ export class UrlsService {
       throw new NotFoundException('Short URL not found.');
     }
 
-    if (url.expiresAt !== undefined && url.expiresAt.getTime() <= Date.now()) {
-      throw new GoneException('Short URL has expired.');
-    }
-
-    return url.originalUrl;
+    return {
+      ...url,
+      clickCount: url.clickCount ?? 0,
+    };
   }
 
   private generateShortCode(): string {
