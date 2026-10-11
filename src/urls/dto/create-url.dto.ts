@@ -5,6 +5,7 @@ import {
   registerDecorator,
   ValidationOptions,
 } from 'class-validator';
+import { Transform, TransformFnParams } from 'class-transformer';
 
 function IsSafeHttpUrl(validationOptions?: ValidationOptions) {
   return (object: object, propertyName: string): void => {
@@ -58,10 +59,12 @@ function IsFutureDate(validationOptions?: ValidationOptions) {
 }
 
 export class CreateUrlDto {
+  @Transform(({ value }: TransformFnParams) => (typeof value === 'string' ? value.trim() : value))
   @IsString()
   @IsSafeHttpUrl()
   originalUrl!: string;
 
+  @Transform(({ value }: TransformFnParams) => (typeof value === 'string' ? value.trim() : value))
   @IsOptional()
   @IsISO8601()
   @IsFutureDate()
