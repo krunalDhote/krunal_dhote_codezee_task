@@ -127,7 +127,10 @@ export class UrlsService {
       throw new NotFoundException('Short URL not found.');
     }
 
-    return url;
+    return {
+      ...url,
+      clickCount: url.clickCount ?? 0,
+    };
   }
 
   private generateShortCode(): string {
