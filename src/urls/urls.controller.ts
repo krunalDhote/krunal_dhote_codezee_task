@@ -1,4 +1,5 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Post, UseGuards } from '@nestjs/common';
+import { ThrottlerGuard } from '@nestjs/throttler';
 
 import { CreateUrlDto } from './dto/create-url.dto';
 import { UrlsService } from './urls.service';
@@ -8,6 +9,7 @@ export class UrlsController {
   constructor(private readonly urlsService: UrlsService) {}
 
   @Post()
+  @UseGuards(ThrottlerGuard)
   async create(@Body() createUrlDto: CreateUrlDto) {
     return this.urlsService.create(createUrlDto);
   }

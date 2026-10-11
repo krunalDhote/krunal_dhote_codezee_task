@@ -7,6 +7,9 @@ export class Url {
 
   @Prop({ required: true })
   originalUrl!: string;
+
+  @Prop({ type: Date })
+  expiresAt?: Date;
 }
 
 export const UrlSchema = SchemaFactory.createForClass(Url);

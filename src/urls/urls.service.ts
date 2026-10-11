@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, GoneException, Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import { randomBytes } from 'node:crypto';
@@ -30,7 +30,12 @@ export class UrlsService {
       const shortCode = this.generateShortCode();
 
       try {
-        await this.urlModel.create({ shortCode, originalUrl: createUrlDto.originalUrl });
+        await this.urlModel.create({
+          shortCode,
+          originalUrl: createUrlDto.originalUrl,
+          expiresAt:
+            createUrlDto.expiresAt === undefined ? undefined : new Date(createUrlDto.expiresAt),
+        });
 
         return {
           shortCode,
@@ -52,12 +57,16 @@ export class UrlsService {
   async getOriginalUrl(shortCode: string): Promise<string> {
     const url = await this.urlModel
       .findOne({ shortCode })
-      .select({ originalUrl: 1, _id: 0 })
+      .select({ originalUrl: 1, expiresAt: 1, _id: 0 })
       .lean()
       .exec();
 
     if (url === null) {
       throw new NotFoundException('Short URL not found.');
+    }
+
+    if (url.expiresAt !== undefined && url.expiresAt.getTime() <= Date.now()) {
+      throw new GoneException('Short URL has expired.');
     }
 
     return url.originalUrl;
