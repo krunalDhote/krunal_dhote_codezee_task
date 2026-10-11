@@ -21,6 +21,7 @@ async function bootstrap(): Promise<void> {
     .setTitle('URL Shortener API')
     .setDescription('REST API for creating, resolving, and analyzing short URLs.')
     .setVersion('1.0')
+    .addServer(configService.getOrThrow<string>('BASE_URL'), 'Current server')
     .build();
   const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('api/docs', app, swaggerDocument);
